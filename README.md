@@ -35,6 +35,8 @@ Use **Preferences → Ping diagnostic** to test from the server and see the resu
 
 ## Using the map
 
+Use the toolbar's **Connection paths** dropdown to switch between **Diagram paths** (imported draw.io waypoints) and **Straight lines**. The selection saves per account and applies across maps. Switching does not alter stored diagram geometry. Diagram mode preserves explicitly imported waypoints; draw.io's automatic orthogonal routing without explicit waypoints is not recreated.
+
 - Import a `.drawio` or XML diagram, including compressed or multi-page diagrams, or create a blank map.
 - Enable **Edit** to assign IPs and groups, add devices/connections, or reposition devices. Changes use revision checks to avoid overwriting concurrent edits.
 - In view mode, drag anywhere—including over devices and containers—to pan. A short click opens details. Scroll to zoom around the pointer; **Fit map** resets the view.
@@ -47,7 +49,7 @@ Use **Preferences → Ping diagnostic** to test from the server and see the resu
 
 ## Appearance and notification sounds
 
-The default theme is inspired by Void Linux: charcoal surfaces and a green accent. Use the top appearance toggle for dark/light mode, or **Preferences** for accent presets and a custom color. Preferences are saved per account.
+The default theme is inspired by Void Linux: charcoal surfaces and a green accent. Use the top appearance toggle for dark/light mode, or **Preferences** for accent presets and a custom color. Enable **Use custom colors** to set background, panels, map canvas, text, muted text, and borders/grid separately. Changes preview immediately; click **Save preferences** to persist them per account. **Reset colors to theme defaults** removes custom overrides; save to keep the reset. Background also colors form inputs; border color also colors the map grid.
 
 Enable device-down sound in Preferences, click **Test sound** to activate browser audio, then save. A new transition to red plays one alert; repeated refreshes of the same down state do not replay it. The initial page load establishes a baseline without sounding old incidents. Upload WAV, MP3, or OGG files up to 5 MB, or choose the built-in tone. Custom sounds are stored privately with the user's account in SQLite.
 

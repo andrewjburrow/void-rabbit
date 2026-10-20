@@ -11,6 +11,7 @@ const icons={
  firewall:'<rect x="3" y="5" width="30" height="25" rx="2"/><path d="M3 13h30M3 21h30M12 5v8m12-8v8m-6 0v8M12 21v9m12-9v9"/>',
  cloud:'<path d="M8 27C-2 27 0 12 10 14c-1-14 20-14 21-1 10 0 10 14 1 14z"/>',
 };
+function connectionPoints(edge,a,b){return [[a.x+a.width/2,a.y+a.height/2],...(prefs.connection_mode==='straight'?[]:(edge.points||[])),[b.x+b.width/2,b.y+b.height/2]];}
 function svg(tag,attrs={},text){const node=document.createElementNS(ns,tag);for(const [key,value]of Object.entries(attrs))node.setAttribute(key,String(value));if(text!==undefined)node.textContent=text;return node;}
 function groupFor(node){return groups.find(g=>g.id===node.group_id);}
 function state(node){if(node.kind==='group'||node.kind==='label')return 'annotation';if(!node.ip)return 'unassigned';if(!node.enabled||!groupFor(node)?.enabled)return 'paused';if(node.probe_error)return 'error';if(node.last_checked&&Date.now()/1000-node.last_checked>(groupFor(node)?.interval_min||1)*120+30)return 'stale';return node.status;}
@@ -46,7 +47,7 @@ function render(){
  el('map-empty').hidden=Boolean(map);el('map-workspace').hidden=!map;if(!map)return;
  const canvas=el('network-map');
  renderDeviceList();updateConnectionTools();el('undo-edit-btn').disabled=!map.undo_label;el('undo-edit-btn').title=map.undo_label?`Undo ${map.undo_label}`:'No saved edit to undo';
- const key=JSON.stringify([map.id,selectedEdge?.index,map.nodes.map(n=>[n.id,n.label,n.ip,n.kind,n.x,n.y,n.width,n.height,n.group_id,n.enabled]),map.edges,editing,selectedId,el('map-search').value,el('map-group-filter').value]);
+ const key=JSON.stringify([map.id,prefs.connection_mode,selectedEdge?.index,map.nodes.map(n=>[n.id,n.label,n.ip,n.kind,n.x,n.y,n.width,n.height,n.group_id,n.enabled]),map.edges,editing,selectedId,el('map-search').value,el('map-group-filter').value]);
  const same=key===renderKey;renderKey=key;applyViewport();
  const q=el('map-search').value.trim().toLowerCase(),group=el('map-group-filter').value;
  const visible=node=>['group','label'].includes(node.kind)||((!q||`${node.label} ${node.ip}`.toLowerCase().includes(q))&&(!group||String(node.group_id)===group));
@@ -61,7 +62,7 @@ function render(){
  canvas.replaceChildren();
  for(const node of visibleNodes.filter(n=>n.kind==='group')){const g=svg('g',{class:'net-container','data-device-id':node.id,tabindex:'0',role:'button','aria-label':node.label||'Diagram container'});g.append(svg('rect',{x:node.x,y:node.y,width:node.width,height:node.height,rx:12,class:'group-outline'}),svg('text',{x:node.x+12,y:node.y+21,class:'group-label'},node.label));g.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();selectNode(node.id);}});canvas.append(g);}
  const byId=new Map(map.nodes.map(n=>[n.cell_id,n]));
- map.edges.forEach((edge,index)=>{if(!visibleIds.has(edge.source)||!visibleIds.has(edge.target))return;const a=byId.get(edge.source),b=byId.get(edge.target);if(!a||!b)return;const points=[[a.x+a.width/2,a.y+a.height/2],...(edge.points||[]),[b.x+b.width/2,b.y+b.height/2]];
+ map.edges.forEach((edge,index)=>{if(!visibleIds.has(edge.source)||!visibleIds.has(edge.target))return;const a=byId.get(edge.source),b=byId.get(edge.target);if(!a||!b)return;const points=connectionPoints(edge,a,b);
   const path=points.map((p,i)=>`${i?'L':'M'}${p[0]} ${p[1]}`).join(' '),both=[state(a),state(b)],cls=both.includes('down')?'down':both.every(s=>s==='up')?'up':'';
   canvas.append(svg('path',{d:path,'data-edge-index':index,class:`net-edge ${cls}${selectedEdge?.index===index?' selected':''}`}));if(editing){const hit=svg('path',{d:path,'data-edge-index':index,class:'edge-hit',tabindex:0,role:'button','aria-label':`Select connection ${a.label} to ${b.label}`});hit.addEventListener('click',()=>selectEdge(index));hit.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();selectEdge(index);}});canvas.append(hit);}
   if(edge.label){const mid=points.length===2?[(points[0][0]+points[1][0])/2,(points[0][1]+points[1][1])/2]:points[Math.floor(points.length/2)];canvas.append(svg('text',{x:mid[0],y:mid[1]-7,class:'edge-label','text-anchor':'middle'},edge.label));}
@@ -95,7 +96,7 @@ canvas.addEventListener('pointerdown',event=>{
 function moveFrame(){frame=0;if(!drag?.moved)return;const dx=drag.lastX-drag.clientX,dy=drag.lastY-drag.clientY;const mx=drag.matrix.a*dx+drag.matrix.c*dy,my=drag.matrix.b*dx+drag.matrix.d*dy;
  if(drag.type==='pan'){viewport={...drag.view,x:drag.view.x-mx,y:drag.view.y-my};applyViewport();}
  else {const node=map.nodes.find(n=>n.id===drag.id);node.x=drag.x+mx;node.y=drag.y+my;canvas.querySelector(`[data-device-id="${node.id}"]`)?.setAttribute('transform',`translate(${mx} ${my})`);
-  const byId=new Map(map.nodes.map(n=>[n.cell_id,n]));canvas.querySelectorAll('.net-edge,.edge-hit').forEach(path=>{if(path.dataset.edgeIndex===undefined)return;const edge=map.edges[Number(path.dataset.edgeIndex)],a=byId.get(edge.source),b=byId.get(edge.target);const points=[[a.x+a.width/2,a.y+a.height/2],...(edge.points||[]),[b.x+b.width/2,b.y+b.height/2]];path.setAttribute('d',points.map((p,i)=>`${i?'L':'M'}${p[0]} ${p[1]}`).join(' '));});
+  const byId=new Map(map.nodes.map(n=>[n.cell_id,n]));canvas.querySelectorAll('.net-edge,.edge-hit').forEach(path=>{if(path.dataset.edgeIndex===undefined)return;const edge=map.edges[Number(path.dataset.edgeIndex)],a=byId.get(edge.source),b=byId.get(edge.target);const points=connectionPoints(edge,a,b);path.setAttribute('d',points.map((p,i)=>`${i?'L':'M'}${p[0]} ${p[1]}`).join(' '));});
  }
 }
 canvas.addEventListener('pointermove',event=>{if(!drag||drag.pointer!==event.pointerId)return;drag.lastX=event.clientX;drag.lastY=event.clientY;if(Math.hypot(event.clientX-drag.clientX,event.clientY-drag.clientY)>5)drag.moved=true;if(drag.moved&&!frame)frame=requestAnimationFrame(moveFrame);});
@@ -139,6 +140,7 @@ el('drawio-file').addEventListener('change',async()=>{const file=el('drawio-file
 el('new-map-btn').addEventListener('click',()=>{el('map-name-error').hidden=true;el('map-name-input').value='';el('map-name-dialog').showModal();});el('map-name-close').addEventListener('click',()=>el('map-name-dialog').close());
 el('map-name-form').addEventListener('submit',async event=>{event.preventDefault();try{const result=await json('/api/topology/maps',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:el('map-name-input').value})});el('map-name-dialog').close();selectedId=null;viewport=null;await refreshMaps(result.id);setEditing(true);}catch(e){showError('map-name-error',e);}});
 async function openTopology(){el('activity-panel').hidden=true;el('topology-panel').hidden=false;el('activity-nav').classList.remove('selected');el('topology-nav').classList.add('selected');el('breadcrumb').textContent='Network topology';el('page-title').textContent='Network topology.';el('page-description').textContent='See your infrastructure. Know what answers.';try{await refreshMaps(map?.id);}catch(e){notify(e.message,true);}}
+document.addEventListener('connection-mode-changed',()=>{renderKey=null;if(map)render();});
 document.addEventListener('auth-ready',()=>{map=null;viewport=null;renderKey=null;selectedId=null;editorNode=null;setEditing(false);openTopology();});
 el('topology-nav').addEventListener('click',openTopology);
 setInterval(async()=>{if(!currentUser||document.hidden||el('topology-panel').hidden||drag)return;try{if(map)await loadMap();if(el('smtp-dialog').open)await loadDeliveries();}catch(e){el('map-updated').textContent='Refresh failed · retrying';el('map-updated').classList.add('map-error');}},5000);

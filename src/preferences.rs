@@ -5,11 +5,49 @@ use serde::{Deserialize, Serialize};
 pub struct Preferences {
     pub theme: String,
     pub accent: String,
+    #[serde(default)]
+    pub background: String,
+    #[serde(default)]
+    pub panel: String,
+    #[serde(default)]
+    pub canvas: String,
+    #[serde(default)]
+    pub text_color: String,
+    #[serde(default)]
+    pub muted_color: String,
+    #[serde(default)]
+    pub border_color: String,
+    #[serde(default = "default_connection_mode")]
+    pub connection_mode: String,
     pub sound_enabled: bool,
     pub sound_name: String,
 }
+fn default_connection_mode() -> String { "diagram".into() }
+
 pub async fn initialize(pool: &sqlx::SqlitePool) -> Result<(), AppError> {
     sqlx::query("CREATE TABLE IF NOT EXISTS user_preferences(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,theme TEXT NOT NULL DEFAULT 'dark',accent TEXT NOT NULL DEFAULT '#478061',sound_enabled INTEGER NOT NULL DEFAULT 0,sound_name TEXT NOT NULL DEFAULT '',sound_mime TEXT NOT NULL DEFAULT '',sound_data BLOB)").execute(pool).await?;
+    let columns: Vec<String> = sqlx::query_scalar("SELECT name FROM pragma_table_info('user_preferences')").fetch_all(pool).await?;
+    if !columns.iter().any(|name| name == "background") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN background TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "panel") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN panel TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "canvas") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN canvas TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "text_color") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN text_color TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "muted_color") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN muted_color TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "border_color") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN border_color TEXT NOT NULL DEFAULT ''").execute(pool).await?;
+    }
+    if !columns.iter().any(|name| name == "connection_mode") {
+        sqlx::query("ALTER TABLE user_preferences ADD COLUMN connection_mode TEXT NOT NULL DEFAULT 'diagram'").execute(pool).await?;
+    }
     sqlx::query("CREATE TABLE IF NOT EXISTS user_map_views(user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,map_id INTEGER NOT NULL REFERENCES topology_maps(id) ON DELETE CASCADE,view_json TEXT NOT NULL,updated_at INTEGER NOT NULL DEFAULT(unixepoch()),PRIMARY KEY(user_id,map_id))").execute(pool).await?;
     Ok(())
 }
@@ -24,7 +62,7 @@ async fn get(req: HttpRequest, state: web::Data<AppState>) -> Result<HttpRespons
     let id = actor(&req)?.id;
     ensure(&state.pool, id).await?;
     let prefs: Preferences = sqlx::query_as(
-        "SELECT theme,accent,sound_enabled,sound_name FROM user_preferences WHERE user_id=?",
+        "SELECT theme,accent,background,panel,canvas,text_color,muted_color,border_color,connection_mode,sound_enabled,sound_name FROM user_preferences WHERE user_id=?",
     )
     .bind(id)
     .fetch_one(&state.pool)
@@ -44,10 +82,25 @@ async fn save(
     {
         return Err(AppError::Validation("Invalid theme or color".into()));
     }
+    for color in [&input.background,&input.panel,&input.canvas,&input.text_color,&input.muted_color,&input.border_color] {
+        if !color.is_empty() && (color.len() != 7 || !color.starts_with('#') || !color[1..].bytes().all(|c| c.is_ascii_hexdigit())) {
+            return Err(AppError::Validation("Colors must be #RRGGBB or empty for theme defaults".into()));
+        }
+    }
+    if !["diagram", "straight"].contains(&input.connection_mode.as_str()) {
+        return Err(AppError::Validation("Invalid connection mode".into()));
+    }
     ensure(&state.pool, id).await?;
-    sqlx::query("UPDATE user_preferences SET theme=?,accent=?,sound_enabled=? WHERE user_id=?")
+    sqlx::query("UPDATE user_preferences SET theme=?,accent=?,background=?,panel=?,canvas=?,text_color=?,muted_color=?,border_color=?,connection_mode=?,sound_enabled=? WHERE user_id=?")
         .bind(&input.theme)
         .bind(&input.accent)
+        .bind(&input.background)
+        .bind(&input.panel)
+        .bind(&input.canvas)
+        .bind(&input.text_color)
+        .bind(&input.muted_color)
+        .bind(&input.border_color)
+        .bind(&input.connection_mode)
         .bind(input.sound_enabled)
         .bind(id)
         .execute(&state.pool)
