@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="static/void-rabbit-logo.png" alt="Void Rabbit logo" width="220">
+</p>
+
 # Void Rabbit 0.5
 
 A self-hosted Rust network topology monitor with draw.io import, router/switch/server/host icons, scheduled IPv4/IPv6 checks, monitoring groups, optional SMTP alerts, account authentication, custom notification sounds, and persistent UTC activity history. The inventory UI and APIs have been removed. Existing SQLite inventory tables are left intact during upgrades.
