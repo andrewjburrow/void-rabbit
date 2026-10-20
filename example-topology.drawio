@@ -1,0 +1,17 @@
+<mxfile host="app.diagrams.net" compressed="false">
+  <diagram id="example-network" name="Example network">
+    <mxGraphModel><root>
+      <mxCell id="0"/><mxCell id="1" parent="0"/>
+      <mxCell id="site" value="SITE / DATA CENTER" style="swimlane;" vertex="1" parent="1"><mxGeometry x="280" y="160" width="600" height="390" as="geometry"/></mxCell>
+      <mxCell id="isp" value="Internet" style="shape=cloud;" vertex="1" parent="1"><mxGeometry x="65" y="240" width="100" height="70" as="geometry"/></mxCell>
+      <mxCell id="edge" value="Edge router" style="shape=mxgraph.cisco.routers.router;" vertex="1" parent="site"><mxGeometry x="60" y="85" width="85" height="65" as="geometry"/></mxCell>
+      <mxCell id="switch" value="Core switch" style="shape=mxgraph.cisco.switches.workgroup_switch;" vertex="1" parent="site"><mxGeometry x="285" y="85" width="95" height="65" as="geometry"/></mxCell>
+      <mxCell id="server" value="Application server" style="shape=mxgraph.cisco.servers.standard_server;" vertex="1" parent="site"><mxGeometry x="160" y="255" width="80" height="70" as="geometry"/></mxCell>
+      <mxCell id="host" value="NOC workstation" style="shape=mxgraph.cisco.computers.pc;" vertex="1" parent="site"><mxGeometry x="420" y="255" width="85" height="65" as="geometry"/></mxCell>
+      <mxCell id="e1" value="WAN" edge="1" parent="1" source="isp" target="edge"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e2" value="10G" edge="1" parent="1" source="edge" target="switch"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e3" value="" edge="1" parent="1" source="switch" target="server"><mxGeometry relative="1" as="geometry"/></mxCell>
+      <mxCell id="e4" value="" edge="1" parent="1" source="switch" target="host"><mxGeometry relative="1" as="geometry"/></mxCell>
+    </root></mxGraphModel>
+  </diagram>
+</mxfile>
