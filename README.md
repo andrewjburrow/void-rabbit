@@ -6,6 +6,16 @@
 
 A self-hosted Rust network topology monitor with draw.io import, router/switch/server/host icons, scheduled IPv4/IPv6 checks, monitoring groups, optional SMTP alerts, account authentication, custom notification sounds, and persistent UTC activity history. The inventory UI and APIs have been removed. Existing SQLite inventory tables are left intact during upgrades.
 
+## Screenshots
+
+### Network dashboard
+
+![Void Rabbit network dashboard with device list and topology map](docs/screenshots/dashboard.png)
+
+### Sign in
+
+![Void Rabbit sign-in screen](docs/screenshots/sign-in.png)
+
 ## Windows 11 quick start
 
 Install Rust with the MSVC toolchain and the Visual Studio C++ build tools if they are not already installed. Extract this archive, open PowerShell in the `void-rabbit` folder, and run:
